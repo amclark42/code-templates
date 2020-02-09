@@ -16,8 +16,8 @@ xquery version "3.1";
 (:~
   
   
-  @author Ashley M. Clark, Northeastern University Women Writers Project
-  2019
+  @author Ashley M. Clark
+  2020
  :)
  
 (:  VARIABLES  :)

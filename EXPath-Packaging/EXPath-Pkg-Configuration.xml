@@ -1,0 +1,9 @@
+<package xmlns="http://expath.org/ns/pkg" 
+    name="http://example.org/pkg/eXample" abbrev="example-app" 
+    version="0.0.1" spec="1.0">
+  <title>Example Application</title>
+  
+  <dependency processor="http://exist-db.org" semver-min="4.4"/>
+  <!-- EXPath package dependencies -->
+  <dependency package="http://www.wwp.northeastern.edu/pkg/wwp-lib" semver-min="1.6"/>
+</package>

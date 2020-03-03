@@ -1,0 +1,21 @@
+<meta xmlns="http://exist-db.org/xquery/repo">
+  <description>A short description of the application's purpose.</description>
+  <author>Ashley M. Clark</author>
+  <website>http://example.org</website>
+  <status>alpha</status>
+  <license>MIT</license>
+  <copyright>true</copyright>
+  <type>application</type><!-- Type can also be "library". -->
+  <target>example-app</target>
+  <prepare><!--lib/pre-install.xq--></prepare>
+  <finish><!--lib/post-install.xq--></finish>
+  <permissions password="" user="admin" group="example" mode="rw-rw-r--"/>
+  
+  <changelog>
+    <change version="0.1">
+      <ul xmlns="http://www.w3.org/1999/xhtml">
+        <li>Created this application.</li>
+      </ul>
+    </change>
+  </changelog>
+</meta>

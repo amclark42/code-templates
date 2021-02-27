@@ -6,17 +6,16 @@
   xmlns=""
   xpath-default-namespace="http://www.tei-c.org/ns/1.0"
   exclude-result-prefixes="tei wwp xs"
-  version="2.0">
+  version="3.0">
   
 <!--
     ...
     
-    Ashley M. Clark
-    2020
+    Ash Clark
+    2021
   -->
   
-  <xsl:output encoding="UTF-8" indent="no" method="xml" 
-     omit-xml-declaration="no"/>
+  <xsl:output encoding="UTF-8" indent="no" method="xml" omit-xml-declaration="no"/>
   
  <!--  PARAMETERS  -->
  <!--  GLOBAL VERIABLES  -->

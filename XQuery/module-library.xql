@@ -16,8 +16,8 @@ xquery version "3.1";
 (:~
   
   
-  @author Ashley M. Clark
-  2020
+  @author Ash Clark
+  2021
  :)
  
 (:  VARIABLES  :)

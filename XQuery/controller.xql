@@ -11,7 +11,7 @@ xquery version "3.1";
   URL-rewriting controller for Application X in eXist-DB
   
   @author Ash Clark
-  @since 2022
+  @since 2023
  :)
 
   declare variable $exist:path external;

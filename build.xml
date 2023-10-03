@@ -1,0 +1,217 @@
+<project xmlns:if="ant:if" xmlns:unless="ant:unless" 
+   default="fullBuild" 
+   name="PROJECT-NAME">
+  
+  <!--
+    Apache Ant buildfile for an EXPath application.
+    
+    In order to use XQuery tasks, a Saxon processor (and its dependency, the XML 
+    resolver JAR file found in the Saxon `lib` directory) should be on Ant's 
+    classpath. The best way to do this is to create symlinks to those JAR files from 
+    a place where Ant can know about them. A good option is `~/.ant/lib`.
+    -->
+  
+<!-- 
+    PROPERTIES
+  -->
+  
+  <xmlproperty file="expath-pkg.xml"/>
+  <property name="build.dir" value="build"/>
+  <property name="project.app" value="${package(abbrev)}"/>
+  <property name="project.version" value="${package(version)}"/>
+  
+  <!-- Properties for XSLT processing. -->
+  <property name="xsl.processor" value="net.sf.saxon.TransformerFactoryImpl"/>
+  <condition property="xsl.doTransform" else="false">
+    <available classname="${xsl.processor}"/>
+  </condition>
+  
+  <!-- Property for XQuery processing. -->
+  <property name="xq.processor" value="net.sf.saxon.Query"/>
+  
+  <!-- Check for updates to the LESS files so they can be converted into CSS. -->
+  <condition property="css.doCompile.main">
+    <uptodate srcfile="assets/css/intertextuality.main.css"
+      targetfile="assets/css/intertextuality.main.less"/>
+  </condition>
+  <condition property="css.doCompile.gestures">
+    <uptodate srcfile="assets/css/gestures.css" targetfile="assets/css/gestures.less"/>
+  </condition>
+  
+  <!-- Check for updates to a JS file so it can be compressed. -->
+  <condition property="js.doCompress.main">
+    <uptodate srcfile="assets/js/intertextual-networks.min.js" 
+      targetfile="assets/js/intertextual-networks.js"/>
+  </condition>
+  
+<!-- 
+    ANT TASKS
+  -->
+  
+  <!-- Generate the EXPath application, refreshing any changed data or CSS. -->
+  <target name="fullBuild">
+    <mkdir dir="${build.dir}"/>
+    <!-- If Saxon isn't on the Java classpath, skip running a transformation. -->
+    <antcall if:true="${xsl.doTransform}" target="updateRecords"/>
+    <echo unless:true="${xsl.doTransform}" 
+      message="Could not find Saxon processor in Ant's classpath. Skipping bibliography update."/>
+    <!-- Compile any modified web assets. -->
+    <antcall target="lessc"/>
+    <antcall target="compress"/>
+    <antcall target="xar"/>
+  </target>
+  
+  <!-- Create the XAR package by pulling together existing resources. -->
+  <target name="xar"
+          description="Build the XAR file for installing the EXPath application">
+    <zip destfile="${build.dir}/${project.app}-${project.version}.xar">
+      <!-- Artifacts of the Ant build are excluded from packaging, as are Node.js structures. -->
+      <fileset dir="." excludes="${build.dir}/* build.xml README.md node_modules/ package.json 
+        .env package-lock.json gulpfile.js"/>
+      <zipfileset dir=".." includes="intertextual-querying.xql cache-bibliography-entries.xq"
+        prefix="lib"/>
+    </zip>
+  </target>
+  
+  <!-- Output the current semantic version of the application. -->
+  <target name="version"
+          description="Report the current version of the EXPath app">
+    <echo message="Current build version is ${project.version}"/>
+  </target>
+  
+  <!-- Increment the semantic version of the application. -->
+  <target name="increment"
+          description="Increment the EXPath application's version number">
+    <antcall target="version"/>
+    <input message="Input the new version number:" addproperty="proposed.version"/>
+    <condition property="new.version" value="${proposed.version}">
+      <matches string="${proposed.version}" pattern="^\d+(\.\d+){2,}"/>
+    </condition>
+    <fail unless="new.version"
+       message="The new version should include the minor and patch versions (i.e. 3.0.0)"/>
+    <echo message="Setting version to ${new.version}"/>
+    <replace file="expath-pkg.xml" failonnoreplacements="true" summary="true" 
+       token='version="${project.version}"' value='version="${new.version}"'/>
+  </target>
+  
+  <!-- Generate a new public-facing bibliography from the master version. This requires Saxon 
+    to be listed in the Java PATH variable. As with XAR packaging, the task will only occur if 
+    the filestamp on the master bibliography is newer than the one on the generated version. -->
+  <target name="updateRecords">
+    <fail message="Could not find Saxon processor." unless="${xsl.doTransform}"/>
+    <xslt in="../../common/bibliography.xml" 
+          out="common/bibliography.xml" 
+          style="../publish-bibliography.xsl"
+          failonerror="false">
+      <factory name="${xsl.processor}"/>
+      <param name="copy-source-notes" expression="false"/>
+    </xslt>
+  </target>
+  
+  <target name="xq.checkForUpdates">
+    <condition property="xq.doCache">
+      <and>
+        <available classname="${xq.processor}"/>
+        <uptodate srcfile="data/bibliography-cache.json"
+                  targetfile="common/bibliography.xml"/>
+      </and>
+    </condition>
+  </target>
+  
+  <!-- Compile the cache(s) of JSON data that will be used as a starting point for the 
+    EXPath app caches. -->
+  <target name="cacheData" depends="xq.checkForUpdates" if="${xq.doCache}">
+    <echo message="Generating preliminary data caches (this may take some time)"/>
+    <java classname="${xq.processor}"
+          failonerror="false">
+      <arg value="-q:../cache-bibliography-entries.xq"/>
+      <arg value="-o:data/bibliography-cache.json"/>
+      <!-- Don't try to quit the Java VM afterward; Ant is using it. -->
+      <arg value="-quit:off"/>
+    </java>
+  </target>
+  
+  <target name="js.checkForUpdates">
+    <condition property="js.doCompress">
+      <or>
+        <istrue value="${js.doCompress.main}"/>
+        <istrue value="${js.doCompress.viz}"/>
+      </or>
+    </condition>
+  </target>
+  
+  <!-- Compress any updated JS files. -->
+  <target name="compress" depends="js.checkForUpdates" if="js.doCompress">
+    <antcall target="compress.js" if:true="${js.doCompress.main}">
+      <param name="input" value="assets/js/intertextual-networks.js"/>
+      <param name="output" value="assets/js/intertextual-networks.min.js"/>
+    </antcall>
+    <antcall target="compress.js" if:true="${js.doCompress.viz}">
+      <param name="input" value="assets/js/viz.js"/>
+      <param name="output" value="assets/js/viz.min.js"/>
+    </antcall>
+  </target>
+  
+  <!-- Use uglifyjs to compress a JS file. -->
+  <target name="compress.js">
+    <echo message="Compressing ${input} (if 'uglifyjs' is available)"/>
+    <exec executable="uglifyjs" failifexecutionfails="false">
+      <arg value="--compress"/>
+      <arg value="-o"/>
+      <arg file="${output}"/>
+      <arg file="${input}"/>
+    </exec>
+  </target>
+  
+  <!-- Use csso to compress a CSS file. -->
+  <target name="compress.css">
+    <echo message="Compressing ${input} (if 'csso' is available)"/>
+    <exec executable="csso" failifexecutionfails="false">
+      <arg value="${input}"/>
+      <arg value="-o"/>
+      <arg value="${output}"/>
+    </exec>
+  </target>
+  
+  <!-- Check if there are unpublished updates to the LESS files. -->
+  <target name="css.checkForUpdates">
+    <condition property="css.doCompile">
+      <or>
+        <istrue value="${css.doCompile.main}"/>
+        <istrue value="${css.doCompile.gestures}"/>
+      </or>
+    </condition>
+  </target>
+  
+  <!-- Compile LESS files into CSS as needed. -->
+  <target name="lessc" depends="css.checkForUpdates" if="css.doCompile">
+    <antcall target="lessc.main"/>
+    <antcall target="lessc.gestures"/>
+  </target>
+  
+  <!-- Compile and compress the main styles for the app. -->
+  <target name="lessc.main" if="${css.doCompile.main}">
+    <echo message="Compiling main LESS file into CSS (if 'lessc' is an available command)"/>
+    <exec executable="lessc" failifexecutionfails="false">
+      <arg file="assets/css/intertextuality.main.less"/>
+      <arg file="assets/css/intertextuality.main.css"/>
+    </exec>
+    <antcall target="compress.css">
+      <param name="input" value="assets/css/intertextuality.main.css"/>
+      <param name="output" value="assets/css/intertextuality.main.min.css"/>
+    </antcall>
+  </target>
+  
+  <!-- Compile and compress gesture styles. -->
+  <target name="lessc.gestures" if="css.doCompile.gestures">
+    <echo message="Compiling gestures LESS file into CSS (if 'lessc' is an available command)"/>
+    <exec executable="lessc" failifexecutionfails="false">
+      <arg file="assets/css/gestures.less"/>
+      <arg file="assets/css/gestures.css"/>
+    </exec>
+    <antcall target="compress.css">
+      <param name="input" value="assets/css/gestures.css"/>
+      <param name="output" value="assets/css/gestures.min.css"/>
+    </antcall>
+  </target>
+</project>

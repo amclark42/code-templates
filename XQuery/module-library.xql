@@ -12,6 +12,7 @@ xquery version "3.1";
   declare namespace rest="http://exquery.org/ns/restxq";
   declare namespace tei="http://www.tei-c.org/ns/1.0";
   declare namespace wwp="http://www.wwp.northeastern.edu/ns/textbase";
+  declare namespace xhtml="http://www.w3.org/1999/xhtml";
 
 (:~
   

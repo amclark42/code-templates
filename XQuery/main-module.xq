@@ -9,6 +9,7 @@ xquery version "3.1";
   declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
   declare namespace tei="http://www.tei-c.org/ns/1.0";
   declare namespace wwp="http://www.wwp.northeastern.edu/ns/textbase";
+  declare namespace xhtml="http://www.w3.org/1999/xhtml";
 (:  OPTIONS  :)
   (:declare option output:indent "no";:)
 
